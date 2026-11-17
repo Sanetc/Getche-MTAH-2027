@@ -152,7 +152,10 @@ def modo_predecir(args):
             pred = anclar_saques(pred, fases, per)
             print(f"  ancla de saques: {len(fases)} fases, {(pred != antes).sum()} fotogramas cambiados")
         pred[D.fuera_de_periodo(d["df"])] = D.NINGUNO           # sin periodo = balón muerto seguro
-        if oficial and not args.sin_saque and D.tiene_smart_tagging(args.data / j, j):
+        if oficial and not args.sin_saque and not D.tiene_smart_tagging(args.data / j, j):
+            sys.exit(f"{j}: falta *_smart_tagging.xml en {args.data / j} (regla del saque inicial); "
+                     f"--sin-saque la omite, pero el archivo no sería el entregado")
+        if oficial and not args.sin_saque:
             # antes de la fase 'Kick Off (Start)' de cada parte el balón está muerto (regla general, del Smart Tagging)
             antes = D.antes_del_saque(d["df"], D.cargar_smart_tagging(args.data / j, j))
             print(f"  antes del saque inicial de cada parte: {int(antes.sum())} fotogramas a D "

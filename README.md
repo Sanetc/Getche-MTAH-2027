@@ -7,9 +7,10 @@ Fase 1: 20 oct – 17 nov 2026. Contexto completo del concurso en `CLAUDE.md`.
 
 ## En qué vamos (17 nov 2026)
 
-- **Entrega: modelo entrenado con ruido de balón + regla del saque inicial.** `reproducir.ps1` /
-  `reproducir.sh` regeneran `Getche.csv` con el SHA-256 de [`Getche.md`](Getche.md) (`b31952fb…`,
-  generado el 17 nov en Windows). En el partido completo: 334 posesiones y `D` en el 46,0% de lo
+- **Entrega: modelo entrenado con ruido de balón + regla del saque inicial.** `reproducir.ps1`
+  regenera en el entorno de referencia (Windows 11, Python 3.11.15) `Getche.csv` con el SHA-256
+  de [`Getche.md`](Getche.md) (`b31952fb…`, 17 nov); `reproducir.sh` es el mismo proceso para
+  Linux/macOS (ver Reproducibilidad). En el partido completo: 334 posesiones y `D` en el 46,0% de lo
   evaluado. Comprobación del pipeline en los 5 min públicos: spellF1 0,600 / macroF1 0,815
   (mejor baseline oficial 0,424); con 17 posesiones no mide el modelo ni sirve para comparar
   versiones.
@@ -41,12 +42,12 @@ Fase 1: 20 oct – 17 nov 2026. Contexto completo del concurso en `CLAUDE.md`.
   tiembla. De ahí sale `--ruido-balon` (ruido de detección del balón al entrenar, calibrado con
   `calibrar_ruido.py`): en leave-one-out con ese ruido en el examen sube de 0,58 a 0,68 (gana en
   los 9 exámenes y con otros niveles de ruido, de +0,03 a +0,14) y pierde con el examen limpio
-  (0,85 → 0,71). Lo adoptamos porque las distancias medidas dicen que el partido no se parece al
+  (0,845 → 0,715). Lo adoptamos porque las distancias medidas dicen que el partido no se parece al
   examen limpio. Detalle en `Getche.md`, secciones 2 y 5. La entrega anterior (modelo C + regla
   del saque, `2c4b8193…`) se regenera quitando `--ruido-balon` de `reproducir.*`.
 - **Reproducibilidad:** el entorno de referencia es Windows 11 x64 con Python 3.11.15 y las
   versiones exactas de `requirements.txt`; el CSV se escribe siempre con fin de línea CRLF. En
-  una Mac con otras versiones (PR #1, Poetry y Docker) el entrenamiento dio otro archivo
+  una Mac con otras versiones (prueba con Poetry y Docker) el entrenamiento dio otro archivo
   (`efe2bb9b…`), y la diferencia no es solo el fin de línea: el archivo entregado es el de
   Windows.
 - **Código público (17 nov):** https://github.com/Sanetc/Getche-MTAH-2027, generado desde la rama `publico` (un solo commit, sin el
@@ -124,7 +125,8 @@ de datos está en `datos.py`, para que el 20 de octubre solo haya que tocar ahí
 
 ## Instalación
 ```powershell
-.\setup.ps1                     # Windows: crea .venv, instala dependencias, baja datos a ..\datos
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force   # Windows trae Restricted; solo esta ventana
+.\setup.ps1                     # Windows (Python 3.11 en el PATH): crea .venv, instala dependencias, baja datos a ..\datos
 .\.venv\Scripts\python.exe -I baseline_posesion.py --data ..\datos\sample-data\data --out salida
 .\.venv\Scripts\python.exe -I modelo_posesion.py   --data ..\datos\sample-data\data --out salida
 ```
@@ -379,6 +381,7 @@ Paso a paso:
 # predice el bundle oficial (carpeta data\ con tactical\BAR-ATH_tactical_atd.xml …), pone D antes del saque inicial de cada parte (Smart Tagging) y escribe tactical.csv con frame,label (199.319 filas)
 .\.venv\Scripts\python.exe -I entregar.py predecir --data ..\datos\oficiales\data --juegos tactical --modelo modelos\posesion.pkl --out entregas
 # valida el archivo exacto que se va a subir con el script oficial (renombrado a <equipo>.csv)
+Copy-Item entregas	actical.csv entregas\<equipo>.csv
 .\.venv\Scripts\python.exe ..\datos\mtah-2027-oficial\evaluation\validate_submission.py entregas\<equipo>.csv
 ```
 El modelo guardado lleva dentro los parámetros de la regla, `p_quedarse`, la duración mínima

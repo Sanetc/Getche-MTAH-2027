@@ -12,7 +12,7 @@ param(
     [string]$Muestra = "..\datos\sample-data\data",
     [string]$Validador = "..\datos\mtah-2027-oficial\evaluation\validate_submission.py"
 )
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"   # "Stop" aborta en PowerShell 5.1 si se redirige la salida y Python escribe avisos en stderr; los errores se comprueban con $LASTEXITCODE
 Set-Location $PSScriptRoot
 $env:PYTHONIOENCODING = "utf8"
 $py = ".\.venv\Scripts\python.exe"
@@ -23,13 +23,13 @@ Write-Host "1/3 Entrenando el modelo con los sample data (condiciones oficiales,
 & $py -I entregar.py entrenar --data $Muestra --modelo modelos\posesion.pkl `
     --enmascarar 0 --paradas-visibles 0.15 --balon interpolar --sin-identidades `
     --ruido-balon 0.8 30 0.06
-if ($LASTEXITCODE -ne 0) { throw "falló el entrenamiento" }
+if ($LASTEXITCODE -ne 0) { throw "fallo el entrenamiento" }
 
 Write-Host "2/3 Prediciendo el bundle oficial..."
 # Solo la grabación táctica: es la referencia de la entrega (broadcast va en otra línea de tiempo)
 & $py -I entregar.py predecir --data $Oficial --juegos tactical --modelo modelos\posesion.pkl --out entregas
-if ($LASTEXITCODE -ne 0) { throw "falló la predicción" }
-Copy-Item "entregas\tactical.csv" "entregas\$Equipo.csv" -Force
+if ($LASTEXITCODE -ne 0) { throw "fallo la prediccion" }
+Copy-Item "entregas\tactical.csv" "entregas\$Equipo.csv" -Force -ErrorAction Stop
 
 Write-Host "3/3 Validando entregas\$Equipo.csv..."
 if (Test-Path $Validador) {

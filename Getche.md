@@ -6,7 +6,7 @@
 
 ## 1. Enfoque
 
-Un clasificador de gradiente (LightGBM) da, para cada fotograma, la probabilidad de `H`, `A` y
+Un clasificador de árboles con *gradient boosting* (LightGBM) da, para cada fotograma, la probabilidad de `H`, `A` y
 `D` a partir de unas 140 variables calculadas solo del tracking: distancias y densidades de cada
 equipo alrededor del balón, dinámica del balón, movimiento colectivo de los equipos (velocidad
 media de los jugadores, centroides) y ventanas temporales hacia atrás y hacia adelante. Un
@@ -30,12 +30,12 @@ una perdida en `spellF1`.
 
 | Dato | Uso |
 |---|---|
-| ATD táctico (`BAR-ATH_tactical_atd.xml/.txt`, leído con kloppy) | **Sí, es la única entrada del modelo.** Los 46 *track slots* se usan solo por equipo: no hay identidades de jugador, así que las variables son colectivas o "del slot más cercano". El ATD trae un solo periodo; las dos partes se asignan con los tramos evaluados oficiales. La dirección de ataque se normaliza por parte con la posición de los porteros (máximo/mínimo por fotograma), sin identidades. Además, de él salen (sin etiquetas) los agregados con que se calibra el ruido de entrenamiento. |
+| ATD táctico (`BAR-ATH_tactical_atd.xml/.txt`, leído con kloppy) | **Sí, es la única entrada del modelo.** Los 46 *track slots* se usan solo por equipo: no hay identidades de jugador, así que las variables son colectivas o "del slot más cercano". El ATD trae un solo periodo; las dos partes se asignan con los tramos evaluados que publica la organización (DATA.md, `games.half_video_blocks`: 11.185–90.651 y 110.808–190.197), que según DATA.md "are boundaries, not answers, and they reveal no label". Ninguna otra constante de fotogramas del partido entra en el pipeline. La dirección de ataque se normaliza por parte con la posición de los porteros (máximo/mínimo por fotograma), sin identidades. Además, de él salen (sin etiquetas) los agregados con que se calibra el ruido de entrenamiento. |
 | Balón ausente (40,7 % de los fotogramas evaluados) | Se rellena por interpolación lineal y el modelo recibe además cuántos fotogramas lleva sin verse. En este partido el balón ausente es casi siempre una parada: en el 87 % de esos fotogramas la velocidad mediana de los jugadores está por debajo de 1,5 m/s, como en las paradas de los partidos de muestra (90 %) y no como en el juego (29–39 %). |
-| Smart Tagging | **Sí, para una sola regla.** En cada parte, los fotogramas anteriores al inicio de la fase `SET PIECES` de tipo `Kick Off (Start)` de esa parte son `D` (sección 4). Es una regla general, calculada del archivo entregado; en este partido solo actúa en la 2ª parte, que se evalúa desde antes del saque. El resto no se usa: todas las `SET PIECES` duran 35 s fijos, así que solo el inicio es informativo, y simulado sobre los partidos de muestra como ancla de saques o como variables no mejoró `spellF1`. Medido en el partido, sin etiquetas: tras una `SET PIECES` con equipo, la primera posesión que predice el modelo es de ese equipo en el 59–72 % de los casos según cómo se cuente (18–27 fases); sin verdad para saber quién acierta, no lo usamos como ancla. |
+| Smart Tagging | **Sí, para una sola regla.** En cada parte, los fotogramas anteriores al inicio de la fase `SET PIECES` de tipo `Kick Off (Start)` de esa parte son `D` (sección 4). Es una regla general, calculada a partir del Smart Tagging que acompaña al partido; en este partido solo actúa en la 2ª parte, que se evalúa desde antes del saque. El resto no se usa: las fases `SET PIECES` tienen duración fija (35 s; 5 s los saques de centro), así que solo su inicio es informativo, y el Smart Tagging simulado sobre los partidos de muestra, como ancla de saques o como variables, no mejoró `spellF1`. Medido en el partido, sin etiquetas: tras una `SET PIECES` con equipo, la primera posesión que predecía el modelo anterior (entrenado sin ruido) era de ese equipo en el 59–72 % de los casos según cómo se cuente (18–27 fases); sin verdad para saber quién acierta, no lo usamos como ancla. |
 | Homografía | **No.** Las coordenadas ya vienen en el campo y no usamos el video. |
 | Grabación broadcast | **No.** Otra línea de tiempo, sin mapeo a la táctica. |
-| Verdad pública (5 min) | **Solo para comprobar el pipeline:** alineación de fotogramas, formato del archivo y que las etiquetas significan lo que creemos (ahí vimos que hay `D` con el balón visible). No se entrenó con ella y ningún parámetro se ajustó contra ella. También calculamos ahí la puntuación de variantes anteriores que no se adoptaron; se cuenta en la sección 5. |
+| Verdad pública (5 min) | **Solo para comprobar el pipeline:** alineación de fotogramas, formato del archivo y que las etiquetas significan lo que creemos (ahí vimos que hay `D` con el balón visible). No se entrenó con ella y ningún parámetro se ajustó contra ella. Durante el desarrollo también calculamos ahí la puntuación de versiones anteriores (0,605 la primera, del 22 oct; 0,630 el modelo C; 0,615 y 0,626 dos variantes descartadas, sección 5) y la miramos para entender errores (paradas con el balón visible, paradas cortas entre posesiones del mismo equipo). Ninguna versión se eligió por esos números. |
 | Partidos de muestra de Metrica (3, anónimos, públicos) | **Entrenamiento.** El modelo final se entrena solo con ellos (sección 3). |
 
 No se etiquetó nada a mano y no se usó ninguna verdad privada. Usamos un asistente de
@@ -60,8 +60,8 @@ fijas:
   etiquetas, con el balón visto y en juego: el jugador más cercano está a 0,3–1,5 m de mediana
   en los de muestra (p25 0,1–0,2 m) y a 1,85 m en el entregado (p25 0,88 m), y la aceleración
   mediana del balón es ~0,1 m/s² frente a 4,9. Las dos variables que más pesaban en el modelo
-  (distancia mínima jugador–balón en los 2 s anteriores, 36 % de la ganancia) dependen de esa
-  distancia. Por eso al balón visible de los partidos de entrenamiento le sumamos un desvío
+  anterior, entrenado sin ruido (la distancia mínima de cada equipo al balón en los 2 s
+  anteriores, 36 % de la ganancia), son justamente esa distancia. Por eso al balón visible de los partidos de entrenamiento le sumamos un desvío
   lento (0,8 m por eje, 30 fotogramas de correlación) y un temblor blanco de 0,06 m
   (`balon_estimado.ruido_balon`). Los valores salen de `calibrar_ruido.py`, que compara entre
   los partidos de muestra con ruido y el ATD entregado los cuantiles p10–p90 de cuatro
@@ -75,9 +75,11 @@ fijas:
   decidió ninguna etiqueta y no intervino la verdad pública ni la privada. El ruido solo se
   aplica a los partidos de entrenamiento; el tracking entregado se predice tal como llega.
 
-Probamos también ocultar el balón en juego al 41 % (la primera hipótesis, antes de ver el
-bundle): con el examen sin ruido de entonces daba 0,818 frente a 0,845, y con un 30 % de paradas
-visibles, 0,776 frente a 0,839. Lo descartamos.
+Probamos también entrenar ocultando el balón en juego al 41 % y sin paradas visibles (la primera
+hipótesis, antes de ver el bundle). Con el examen sin ruido de entonces y un 15 % de paradas
+visibles daba 0,818 frente a 0,845 del modelo C, y con un 30 %, 0,776 frente a 0,839. La
+diferencia viene sobre todo de las paradas visibles; ocultar el balón por sí solo no ayudaba. Lo
+descartamos.
 
 ## 3. Datos de entrenamiento
 
@@ -111,7 +113,8 @@ eventos de los partidos de muestra:
 - **Balón suelto, desvíos y duelos:** un pase desviado sin interceptar, un despeje sin control o
   un duelo aéreo sin control posterior **no cambian** la posesión. La conserva el que la tenía
   hasta que el rival controla. Un tiro parado tampoco la cambia por sí solo.
-- **Balón muerto (`D`):** desde que el balón sale, hay gol, falta o fuera de juego, hasta el
+- **Balón muerto (`D`):** desde que el balón sale, hay gol, falta, fuera de juego o un tiro da en
+  el palo, hasta el
   siguiente saque. Las faltas siguen siendo `D` aunque haya disputa: son la mayoría de los
   ejemplos de "balón visible y jugadores quietos" y sin ellas el modelo falla en paradas largas
   (lesiones). En el descanso y tras el final de cada parte, `D`.
@@ -130,11 +133,19 @@ eventos de los partidos de muestra:
   balón y empeora: el evaluador la rellena con la etiqueta anterior y eso retrasa los cambios de
   posesión que ocurren sin ver el balón.
 
+- **Regla de control (una variable más del modelo, no la etiqueta final):** un jugador controla
+  el balón si es el más cercano de los dos equipos, está a 1,5 m o menos y el balón va a 25 m/s o
+  menos; la posesión pasa al rival tras 10 fotogramas de control rival (los fotogramas en que
+  nadie controla no reinician la cuenta) y, con el balón fuera del campo, es `D`. Los valores se
+  eligen por `spellF1` en los partidos de entrenamiento (rejilla de 1 a 3 m, de 1 a 10 fotogramas
+  y de 10 a 25 m/s).
+
 **Post-procesado** (solo continuidad, todo elegido por `spellF1` fuera de muestra entre los
 partidos de entrenamiento): Viterbi con probabilidad de permanencia 0,99; paradas de menos de
 50 fotogramas (2 s) entre dos posesiones pasan a la posesión anterior, porque un `D` de un
 instante parte una posesión en dos; posesiones de menos de 25 fotogramas (1 s) se funden con la
-anterior. Al final se aplica la regla del saque inicial.
+anterior (con la siguiente si antes hay una parada). Al final se aplica la regla del saque
+inicial.
 
 ## 5. Validación
 
@@ -156,8 +167,10 @@ distancias medidas en el partido entregado dicen que ese examen limpio no lo rep
 una decisión tomada con la validación en otros partidos y con agregados sin etiquetas, no con
 los 5 minutos públicos.
 
-Robustez a la calibración (examen al 15 %; ventaja en spellF1 del modelo con ruido sobre el
-entrenado sin ruido cuando el ruido del examen no es el del entrenamiento):
+Robustez a la calibración (examen al 15 %, con otra realización del ruido que la de la tabla
+anterior; ventaja en spellF1 del modelo con ruido sobre el entrenado sin ruido cuando cambia el
+nivel o la estructura del ruido del examen; 0,8 m es el valor calibrado, y 10 fotogramas con
+0,02 m, el mínimo de la segunda rejilla de calibración):
 
 | Ruido del examen | Ventaja |
 |---|---|
@@ -169,8 +182,8 @@ entrenado sin ruido cuando el ruido del examen no es el del entrenamiento):
 En todos esos exámenes el modelo con ruido queda entre 0,64 y 0,71; el entrenado sin ruido cae
 de 0,85 (sin ruido) a 0,50 (desvío de 1,2 m).
 
-Lo que aporta cada etapa (examen con ruido al 15 %): LightGBM solo 0,34 (parpadea), +Viterbi
-0,68, +paradas mínimas y fusión 0,68. La regla del saque inicial no afecta a esta validación: en
+Lo que aporta cada etapa (examen con ruido al 15 %): LightGBM solo 0,335 (parpadea), +Viterbi
+0,676, +paradas mínimas y fusión 0,682. La regla del saque inicial no afecta a esta validación: en
 los partidos de muestra cada parte empieza en el saque.
 
 Son otros partidos, una verdad aproximada y un ruido simulado: indican el orden de magnitud, no
@@ -178,14 +191,14 @@ el resultado final. Comprobación del pipeline: en los 5 minutos públicos el ar
 spellF1 0,600 y macroF1 0,815 (mejor baseline oficial 0,424; 15 posesiones predichas frente a
 17, cambios con un fotograma de retraso en la mediana). Son 17 posesiones: el número confirma
 que el archivo está alineado y bien formado, no mide el modelo, y no se usó para entrenar, para
-ajustar ni para elegir entre versiones. La pasamos una sola vez, sobre este archivo y después de
+ajustar ni para elegir entre versiones. Esta comprobación la hicimos una sola vez, sobre este archivo y después de
 decidir; el modelo anterior daba ahí 0,630 / 0,842, una diferencia menor que lo que mueve una
 sola posesión (unos 6 puntos). En el partido completo predice 334
 posesiones y `D` en el 46,0 % de lo evaluado.
 
 Agregados sin etiquetas del partido entregado, modelo entrenado sin ruido → con ruido (los dos
 con la regla del saque): 388 → 334 posesiones (7,0 → 5,8 por minuto de juego; en la verdad de
-los partidos de muestra son unas 5,7), `D` 47,5 % → 46,0 %, `D` con balón visible 15,3 % →
+los partidos de muestra son unas 5,7), `D` 47,5 % → 46,0 %, `D` entre los fotogramas con balón visible 15,3 % →
 12,4 % (se esperaba ~13 %), y la clase más probable cambia 19,9 → 11,3 veces por minuto.
 
 **Historia: lo probado antes con la validación sin ruido** (modelo de entonces, "modelo C":
@@ -209,16 +222,16 @@ decisión.
 | Prueba | Partidos de muestra (leave-one-out, sin ruido) | Partido entregado (agregados sin etiquetas) |
 |---|---|---|
 | Posesiones de menos de `min_pd` entre dos paradas pasan a `D` (`--entre-paradas`) | 0,844 → 0,843: el ajuste fuera de muestra lo apaga en 2 de 3 partidos | — |
-| Variables de balón parado y visible: quieto, en un punto de reanudación, jugadores lentos (`--features-parada`) | 0,844 → 0,863 | Peor: `D` con balón visible baja de 13,8 % a 5,0 % (se esperaba ~13 %); lo aprendido con las paradas simuladas no se traslada a las reales |
+| Variables de balón parado y visible: quieto, en un punto de reanudación, jugadores lentos (`--features-parada`) | 0,844 → 0,863 | Peor: la parte de los fotogramas con balón visible marcada `D` baja de 13,8 % a 5,0 % (se esperaba ~13 %); lo aprendido con las paradas simuladas no se traslada a las reales |
 | Verdad "control": un toque del rival sin pase, tiro ni saque de menos de 1 s no cambia la posesión (`--verdad control`) | 0,834 → 0,860 (examen con esa verdad) | Igual: 354 posesiones frente a 343–409, mismas paradas |
 | Autoentrenamiento con las predicciones seguras del propio partido (`autoentreno.py`) | 0,845 → 0,853; las pseudo-etiquetas aciertan el 93–98 % | Poca cobertura: el modelo solo está seguro en el 56 % de los fotogramas (82 % en los de muestra) |
 
-Lo que enseñaron las cuatro: lo que faltaba era la distancia entre los partidos de muestra y
-este tracking, y no se cerraba con retoques del modelo. Las cuatro siguen en el código, apagadas
+Lo que enseñaron las cuatro: el problema de fondo era la distancia entre los partidos de muestra
+y este tracking, y no se cerraba con retoques del modelo. Las cuatro siguen en el código, apagadas
 por defecto.
 
-**Revisión del 16–17 nov.** Reconstruimos el modelo desde cero (misma validación y mismo
-archivo, fotograma a fotograma), comprobamos con agregados que la dirección de ataque se
+**Revisión del 16–17 nov.** Reconstruimos desde cero el modelo de entonces (modelo C), con la
+misma validación y el mismo archivo, fotograma a fotograma; comprobamos con agregados que la dirección de ataque se
 normaliza bien en las dos partes del partido entregado y medimos esa distancia entre dominios
 (sección 2). De ahí salen los dos cambios de esta entrega:
 
@@ -237,7 +250,7 @@ normaliza bien en las dos partes del partido entregado y medimos esa distancia e
   balón) la mejora medida en los partidos de muestra puede no trasladarse entera. Con un examen
   sin ruido este modelo pierde 0,13 frente al entrenado sin ruido: apostamos a que el partido se
   parece al examen con ruido, que es lo que dicen las distancias medidas.
-- **Funde algunas posesiones.** En los exámenes con ruido predice un 13 % menos de posesiones que
+- **Funde algunas posesiones.** En el examen con ruido al 15 % predice un 13 % menos de posesiones que
   la verdad (913 frente a 1.053 en los tres partidos); el modelo entrenado sin ruido predecía un
   14 % de más.
 - **Paradas con el balón visible:** son el error más probable. El modelo las detecta por el
@@ -250,27 +263,38 @@ normaliza bien en las dos partes del partido entregado y medimos esa distancia e
   puede empezar un poco antes de tiempo.
 - **Ventanas futuras:** las variables usan información posterior al fotograma. El método es
   *offline* sobre el partido completo, como permite la tarea.
+- **Defectos conocidos, sin corregir porque exigen reentrenar:** en la verdad de entrenamiento,
+  las paradas que los eventos no marcan quedan como posesión; el balón "quieto" de las paradas
+  simuladas tiembla 0,1 m por fotograma; y las velocidades por slot no cortan del todo los saltos
+  de identidad.
 - **Con más tiempo:** calibrar también la correlación temporal del ruido con un estadístico que
   la determine, simular paradas con el balón llevado por un jugador y construir una verdad de
   entrenamiento desde tracking, como la oficial.
 
 ## 7. Reproducción
 
+Requisito: Python 3.11 en el `PATH` (probado con 3.11.15).
+
 ```powershell
 git clone https://github.com/Sanetc/Getche-MTAH-2027   # el código; los datos van en ..\datos, fuera del repo
 cd Getche-MTAH-2027
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force   # Windows trae Restricted; solo esta ventana
 .\setup.ps1                                            # venv + dependencias + datos de muestra de Metrica
 .\reproducir.ps1 -Equipo Getche -Oficial ..\datos\oficiales\data
 ```
-En Linux/macOS: `./setup.sh` y `./reproducir.sh Getche ../datos/oficiales/data`.
+En Linux/macOS (antes, en macOS `brew install libomp`, y en Linux el paquete `libgomp1`, que
+necesita LightGBM): `bash setup.sh` y `bash reproducir.sh Getche ../datos/oficiales/data`.
 
 `reproducir` entrena el modelo con los datos de muestra y el ruido de balón calibrado
 (`--ruido-balon 0.8 30 0.06`; ~15 min, 16 GB de RAM), predice la grabación táctica (carpeta
 `tactical` del bundle, con su ATD y su Smart Tagging), escribe `entregas\Getche.csv`, lo pasa
 por `validate_submission.py` si el repo oficial está clonado en `..\datos\mtah-2027-oficial` y
 muestra su SHA-256, que debe coincidir con el de arriba. La calibración del ruido se repite con
-`python -I calibrar_ruido.py --data ..\datos\sample-data\data --oficial ..\datos\oficiales\data --entrega <predicción sin ruido>`
-(solo imprime cuantiles).
+`.\.venv\Scripts\python.exe -I calibrar_ruido.py --data ..\datos\sample-data\data --oficial ..\datos\oficiales\data --entrega <CSV del modelo sin ruido>`
+(el que da `reproducir.ps1` sin `--ruido-balon`; solo imprime cuantiles). El guion trae la
+segunda rejilla (correlación de 10 a 120 fotogramas), cuyo mínimo es 0,8 m / 10 fotogramas /
+0,02 m; los valores usados, 0,8 / 30 / 0,06, son el mínimo de la primera rejilla (correlación de
+30 a 250), y la sección 5 muestra que el resultado no depende de esa elección.
 
 **Entorno de referencia:** Windows 11 x64, Python 3.11.15 y las versiones exactas de
 `requirements.txt` (pandas 3.0.5, numpy 2.4.6, lightgbm 4.6.0, scikit-learn 1.9.1,
