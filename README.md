@@ -49,8 +49,9 @@ Fase 1: 20 oct – 17 nov 2026. Contexto completo del concurso en `CLAUDE.md`.
   una Mac con otras versiones (PR #1, Poetry y Docker) el entrenamiento dio otro archivo
   (`efe2bb9b…`), y la diferencia no es solo el fin de línea: el archivo entregado es el de
   Windows.
-- **Pendiente (17 nov):** publicar el código en un repositorio público nuevo, sin el historial de
-  trabajo, y subir la entrega por el formulario.
+- **Código público (17 nov):** https://github.com/Sanetc/Getche-MTAH-2027, generado desde la rama `publico` (un solo commit, sin el
+  historial de trabajo ni las notas internas de planificación). Este repo de trabajo sigue
+  privado. **Pendiente:** subir la entrega por el formulario.
 
 > Las secciones que siguen son notas fechadas del desarrollo (octubre): cuentan cómo se llegó
 > hasta aquí y algunas cifras y planes ya no están vigentes. El método y los números actuales

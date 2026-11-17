@@ -361,6 +361,9 @@ ruido se tomó con leave-one-out y agregados sin etiquetas, antes de pasar la co
 los 5 min públicos al archivo final: 0,600 / 0,815, 15 posesiones de 17, latencia mediana
 1 fotograma (el modelo C daba 0,630 / 0,842; con 17 posesiones es ruido y, por regla, no es un
 criterio). `reproducir.ps1` desde `main` regeneró `b31952fb…` exacto el 17 nov.
+**Repo público de la entrega:** https://github.com/Sanetc/Getche-MTAH-2027. Se genera desde la rama `publico` de este repo
+(sin historial; quita las notas internas de planificación), que se actualiza con commits normales
+encima, nunca forzando. Este repo de trabajo (`Sanetc/Talent-Arena-AE`) sigue privado.
 - *Comprobado:* reconstruir el modelo C desde cero da el mismo leave-one-out (0,850 / 0,845 /
   0,839) y el mismo CSV fotograma a fotograma; la dirección de ataque está bien en las dos
   partes del partido real (centroide local a la izquierda del visitante en el 98,5% de la 1ª

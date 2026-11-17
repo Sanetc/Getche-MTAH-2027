@@ -2,7 +2,7 @@
 
 **Equipo:** Getche  
 **Archivo entregado:** `Getche.csv` (SHA-256 `b31952fbea4b91ae0de9b860fae524c83b1617f2efe477328ac08b23178563e2`)  
-**Repositorio:** el enlace público indicado en el formulario de entrega (código sin datos del partido)
+**Repositorio:** https://github.com/Sanetc/Getche-MTAH-2027 (código sin datos del partido)
 
 ## 1. Enfoque
 
@@ -257,8 +257,8 @@ normaliza bien en las dos partes del partido entregado y medimos esa distancia e
 ## 7. Reproducción
 
 ```powershell
-git clone <URL del repositorio público>               # el código; los datos van en ..\datos, fuera del repo
-cd <carpeta del repositorio>
+git clone https://github.com/Sanetc/Getche-MTAH-2027   # el código; los datos van en ..\datos, fuera del repo
+cd Getche-MTAH-2027
 .\setup.ps1                                            # venv + dependencias + datos de muestra de Metrica
 .\reproducir.ps1 -Equipo Getche -Oficial ..\datos\oficiales\data
 ```
