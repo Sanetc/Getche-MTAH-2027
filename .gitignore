@@ -1,0 +1,8 @@
+.venv/
+salida/
+salida_*/
+*.log
+__pycache__/
+*.pyc
+modelos/
+entregas/
